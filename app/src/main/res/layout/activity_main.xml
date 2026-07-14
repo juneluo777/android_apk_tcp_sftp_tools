@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#121212"
+    android:padding="8dp">
+
+    <!-- Tab 头部切换 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#1E1E1E"
+        android:padding="4dp">
+        <Button id="@+id/btn_tab_tcp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TCP 调试"
+            android:backgroundTint="#00ADB5"/>
+        <Button id="@+id/btn_tab_sftp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="SFTP 下载"
+            android:backgroundTint="#333333"/>
+    </LinearLayout>
+
+    <!-- 主体内容卡片 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- TCP 区域 -->
+        <ScrollView id="@+id/panel_tcp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <EditText android:id="@+id/et_tcp_ip"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="3"
+                        android:hint="IP"
+                        android:textColorHint="#888"
+                        android:textColor="#FFF"/>
+                    <EditText android:id="@+id/et_tcp_port"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Port"
+                        android:textColorHint="#888"
+                        android:textColor="#FFF"/>
+                </LinearLayout>
+                <Button android:id="@+id/btn_tcp_connect"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="连接"
+                    android:enabled="false"/>
+                <TextView android:id="@+id/tv_tcp_recv"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:background="#0D0D0D"
+                    android:textColor="#00FF00"
+                    android:scrollbars="vertical"
+                    android:padding="5dp"
+                    android:text="等待接收数据...\n"/>
+                <EditText android:id="@+id/et_tcp_send"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="输入发送内容..."
+                    android:textColorHint="#888"
+                    android:textColor="#FFF"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <Button android:id="@+id/btn_tcp_send"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_height="wrap_content"
+                        android:text="发送"/>
+                    <Button android:id="@+id/btn_tcp_reset"
+                        android:layout_width="0dp"
+                        android:layout_weight="1.2"
+                        android:layout_height="wrap_content"
+                        android:text="重置"/>
+                    <Button android:id="@+id/btn_tcp_quit"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="退出"/>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- SFTP 区域 -->
+        <ScrollView id="@+id/panel_sftp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <EditText android:id="@+id/et_sftp_uri"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="username:password@ip_address"
+                    android:textColorHint="#888"
+                    android:textColor="#FFF"/>
+                <EditText android:id="@+id/et_sftp_path"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="remote/path/to/file.jpg"
+                    android:textColorHint="#888"
+                    android:textColor="#FFF"/>
+                <Button android:id="@+id/btn_sftp_get"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SFTP GET FILE"/>
+                <ImageView android:id="@+id/iv_sftp_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp"
+                    android:scaleType="fitCenter"
+                    android:background="#0D0D0D"
+                    android:layout_marginTop="10dp"/>
+                <Button android:id="@+id/btn_sftp_save"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="保存到相册"
+                    android:visibility="gone"/>
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
+</LinearLayout>
