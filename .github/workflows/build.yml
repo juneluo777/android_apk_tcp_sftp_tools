@@ -36,7 +36,7 @@ jobs:
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew -o gradlew
         chmod +x gradlew
         
-        # 下载配套的 gradle-wrapper.jar (修复了 https 协议前缀)
+        # 下载配套的 gradle-wrapper.jar
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
         
         # 强制写入标准的 gradle-wrapper.properties 配置文件
@@ -49,7 +49,7 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
 
-    # 2. 注入 Google 依赖仓库，确保能拉取到 Android 核心打包插件
+    # 2. 注入 Google 依赖仓库（改用最稳妥的 printf 避免 EOF 缩进问题）
     - name: Inject Google Maven Repositories
       run: |
         echo "=== Injecting Google Maven repos into settings.gradle ==="
@@ -57,24 +57,10 @@ jobs:
           # 备份原文件
           cp settings.gradle settings.gradle.bak
           
-          # 在 settings.gradle 头部注入插件仓库源
-          cat << 'EOF' > temp_settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          EOF
+          # 用 printf 写入临时文件，彻底避开 EOF 语法陷阱
+          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > temp_settings.gradle
           
+          # 合并原来的 settings.gradle 内容
           cat settings.gradle.bak >> temp_settings.gradle
           mv temp_settings.gradle settings.gradle
           echo "Injected repositories successfully."
