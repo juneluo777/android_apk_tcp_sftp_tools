@@ -60,11 +60,25 @@ jobs:
         fi
 
         echo "=== Ensuring app/build.gradle is clean ==="
-        # 如果之前因为运行出错导致 app/build.gradle.bak 存在，我们把它还原回来以确保它是干净的
         if [ -f app/build.gradle.bak ]; then
           mv app/build.gradle.bak app/build.gradle
           echo "Restored original app/build.gradle to clear injected code."
         fi
+
+    # 3. 强行启用 AndroidX 编译开关，并忽略 compileSdk 34 的 AGP 8.0 警告
+    - name: Configure Gradle Properties
+      run: |
+        echo "=== Patching gradle.properties ==="
+        # 如果文件不存在，则直接创建
+        touch gradle.properties
+        
+        # 写入 AndroidX 核心开关和不匹配 SDK 的警告屏蔽开关
+        cat << 'EOF' >> gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        android.suppressUnsupportedCompileSdk=34
+        EOF
+        echo "Configured gradle.properties successfully."
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug
