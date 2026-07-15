@@ -1,148 +1,40 @@
-#!/bin/sh
+name: Build Standalone APK
 
-#
-# Safe protect for window carriage returns
-#
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
-# Resolve links - $0 may be a softlink
-PRG="$0"
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-while [ -h "$PRG" ] ; do
-  ls=`ls -ld "$PRG"`
-  link=`expr "$ls" : '.*-> \(.*\)$'`
-  if expr "$link" : '/.*' > /dev/null; then
-    PRG="$link"
-  else
-    PRG=`dirname "$PRG"`/"$link"
-  fi
-done
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-SAVED="`pwd`"
-cd "`dirname \"$PRG\"`" >/dev/null
-APP_HOVER="`pwd`"
-# Attempt to set APP_HOME
-# Resolve APP_HOME and relative paths
-APP_HOME="`pwd -P`"
-cd "$SAVED" >/dev/null
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-APP_NAME="Gradle"
-APP_BASE_NAME=`basename "$0"`
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
 
-# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
-DEFAULT_JVM_OPTS=""
+    # 核心修复步骤：如果本地的 gradlew 损坏或格式不对，直接用系统自带的 gradle 重新生成它！
+    - name: Regenerate clean Gradle Wrapper
+      run: |
+        echo "=== Regenerating gradlew wrapper ==="
+        gradle wrapper --gradle-version 8.0 --distribution-type bin
+        chmod +x gradlew
 
-# Use the maximum available, or set MAX_FD != -1 to use that value.
-MAX_FD="maximum"
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
 
-warn () {
-    echo "$*"
-}
-
-die () {
-    echo
-    echo "$*"
-    echo
-    exit 1
-}
-
-# OS specific support (must be 'true' or 'false').
-cygwin=false
-msys=false
-darwin=false
-nonstop=false
-case "`uname`" in
-  CYGWIN* )
-    cygwin=true
-    ;;
-  Darwin* )
-    darwin=true
-    ;;
-  MSYS* | MINGW* )
-    msys=true
-    ;;
-  NONSTOP* )
-    nonstop=true
-    ;;
-esac
-
-CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
-
-
-# Determine the Java command to use to start the JVM.
-if [ -n "$JAVA_HOME" ] ; then
-    if [ -x "$JAVA_HOME/bin/java" ] ; then
-        # Already set; use it.
-        JAVACMD="$JAVA_HOME/bin/java"
-    else
-        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
-
-Please set the JAVA_HOME variable in your environment to match the
-location of your Java installation."
-    fi
-else
-    JAVACMD="java"
-    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
-
-Please set the JAVA_HOME variable in your environment to match the
-location of your Java installation."
-fi
-
-# Increase the maximum file descriptors if we can.
-if [ "$cygwin" = "false" -a "$msys" = "false" -a "$darwin" = "false" -a "$nonstop" = "false" ] ; then
-    MAX_FD_LIMIT=`ulimit -H -n`
-    if [ $? -eq 0 ] ; then
-        if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ] ; then
-            MAX_FD="$MAX_FD_LIMIT"
-        fi
-        ulimit -n $MAX_FD
-        if [ $? -ne 0 ] ; then
-            warn "Could not set maximum file descriptor limit: $MAX_FD"
-        fi
-    else
-        warn "Could not query maximum file descriptor limit: $MAX_FD_LIMIT"
-    fi
-fi
-
-# For Cygwin or MSYS, switch paths to Windows format before running java
-if $cygwin ; then
-    APP_HOME=`cygpath --path --mixed "$APP_HOME"`
-    CLASSPATH=`cygpath --path --mixed "$CLASSPATH"`
-    
-    JAVACMD=`cygpath --unix "$JAVACMD"`
-
-    # We build the pattern for arguments to be converted via cygpath
-    ROOTDIRSANDPATHCHARS="^[[a-zA-Z]]:[/\\]|^/"
-    ARGUMENT_ARRAY_TBA=()
-fi
-
-# Collect all arguments for the java command, moving the property env vars to the front.
-# For example, if -Dname=value is passed, it should be put before the -classpath argument.
-# We also do path translation for cygwin/msys if needed.
-for arg do
-    if $cygwin ; then
-        case $arg in
-          -D* )
-            # Propagate system properties
-            ;;
-          *)
-            if echo "$arg" | grep -E "$ROOTDIRSANDPATHCHARS" >/dev/null ; then
-                arg=`cygpath --path --mixed "$arg"`
-            fi
-            ;;
-        esac
-    fi
-    # Add to the execution args list
-    eval "set -- \"\$@\" \"\$arg\""
-    shift
-done
-
-# Escape any spaces in the path to the jar
-if $cygwin ; then
-    CLASSPATH=`cygpath --path --mixed "$CLASSPATH"`
-fi
-
-exec "$JAVACMD" \
-  "-Dorg.gradle.appname=$APP_BASE_NAME" \
-  -classpath "$CLASSPATH" \
-  org.gradle.wrapper.GradleWrapperMain \
-  "$@"
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: "**/build/outputs/apk/debug/*.apk"
