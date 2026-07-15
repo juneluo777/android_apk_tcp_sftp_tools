@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (imm != null) {
                 if (hasFocus) {
-                    imm.showSoftInput(etTcpSend, InputMethodManager.SHOW_IMMEDIALTY);
+                    imm.showSoftInput(etTcpSend, 0);
                 } else {
                     imm.hideSoftInputFromWindow(etTcpSend.getWindowToken(), 0);
                 }
