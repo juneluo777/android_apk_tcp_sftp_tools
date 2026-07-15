@@ -28,18 +28,11 @@ jobs:
       run: |
         echo "=== Creating gradle/wrapper folder structure ==="
         mkdir -p gradle/wrapper
-        
-        # 强制删除本地损坏的文件
         rm -f gradlew
-        
-        # 下载干净的官方 Linux 启动脚本 gradlew
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew -o gradlew
         chmod +x gradlew
-        
-        # 下载配套的 gradle-wrapper.jar
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
         
-        # 强制写入标准的 gradle-wrapper.properties 配置文件
         cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
@@ -54,31 +47,50 @@ jobs:
       run: |
         echo "=== Configuring settings.gradle with Plugin Management ==="
         if [ -f settings.gradle ]; then
-          # 强制重写 settings.gradle，使用最标准的 Google 仓库声明和插件版本下发
           printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n    plugins {\n        id 'com.android.application' version '8.0.0'\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nrootProject.name = 'android_apk_tcp_sftp_tools'\ninclude ':app'\n" > settings.gradle
-          echo "Overwrote settings.gradle successfully."
         fi
 
-        echo "=== Ensuring app/build.gradle is clean ==="
         if [ -f app/build.gradle.bak ]; then
           mv app/build.gradle.bak app/build.gradle
-          echo "Restored original app/build.gradle to clear injected code."
         fi
 
-    # 3. 强行启用 AndroidX 编译开关，并忽略 compileSdk 34 的 AGP 8.0 警告
+    # 3. 强行启用 AndroidX 编译开关
     - name: Configure Gradle Properties
       run: |
         echo "=== Patching gradle.properties ==="
-        # 如果文件不存在，则直接创建
         touch gradle.properties
-        
-        # 写入 AndroidX 核心开关和不匹配 SDK 的警告屏蔽开关
         cat << 'EOF' >> gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
         android.suppressUnsupportedCompileSdk=34
         EOF
-        echo "Configured gradle.properties successfully."
+
+    # 4. 核心步骤：自动补齐缺少的 mipmap 图标资源
+    - name: Fix Missing Mipmap Icons
+      run: |
+        echo "=== Checking and creating placeholder icons ==="
+        # 定义 mipmap-anydpi-v26 目录（现代 Android 的 XML 矢量自适应图标存放地）
+        MIPMAP_DIR="app/src/main/res/mipmap-anydpi-v26"
+        mkdir -p "$MIPMAP_DIR"
+
+        # 定义一个最简的 Android 矢量图标 XML 内容（一个绿色的圆形）
+        cat << 'EOF' > "$MIPMAP_DIR/ic_launcher.xml"
+        <?xml version="1.0" encoding="utf-8"?>
+        <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@android:color/holo_green_dark" />
+            <foreground android:drawable="@android:color/white" />
+        </adaptive-icon>
+        EOF
+
+        # 同样为圆角图标生成对应的占位资源
+        cat << 'EOF' > "$MIPMAP_DIR/ic_launcher_round.xml"
+        <?xml version="1.0" encoding="utf-8"?>
+        <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@android:color/holo_green_dark" />
+            <foreground android:drawable="@android:color/white" />
+        </adaptive-icon>
+        EOF
+        echo "Placeholder icons generated successfully."
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug
