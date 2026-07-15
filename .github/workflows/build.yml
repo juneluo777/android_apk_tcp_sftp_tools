@@ -20,11 +20,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # 使用官方 Gradle 动作：它会自动帮你处理权限、换行符，并自带高效缓存
-    - name: Setup and Build with Gradle
+    # 正确做法 1：v4 动作只用来配置 Gradle 环境和缓存，不直接传参
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
-      with:
-        arguments: assembleDebug
+
+    # 正确做法 2：环境好了之后，用标准的 run 运行编译（此时插件会自动接管底层）
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
