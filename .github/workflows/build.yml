@@ -36,8 +36,8 @@ jobs:
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew -o gradlew
         chmod +x gradlew
         
-        # 下载配套的 gradle-wrapper.jar
-        curl -sL://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+        # 下载配套的 gradle-wrapper.jar (修复了 https 协议前缀)
+        curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
         
         # 强制写入标准的 gradle-wrapper.properties 配置文件
         cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
@@ -53,10 +53,10 @@ jobs:
     - name: Inject Google Maven Repositories
       run: |
         echo "=== Injecting Google Maven repos into settings.gradle ==="
-        # 如果项目根目录下有 settings.gradle，确保它声明了 google() 和 mavenCentral()
         if [ -f settings.gradle ]; then
           # 备份原文件
           cp settings.gradle settings.gradle.bak
+          
           # 在 settings.gradle 头部注入插件仓库源
           cat << 'EOF' > temp_settings.gradle
           pluginManagement {
@@ -73,7 +73,8 @@ jobs:
                   mavenCentral()
               }
           }
-  EOF
+          EOF
+          
           cat settings.gradle.bak >> temp_settings.gradle
           mv temp_settings.gradle settings.gradle
           echo "Injected repositories successfully."
