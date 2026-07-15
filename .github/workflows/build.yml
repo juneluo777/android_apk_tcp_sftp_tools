@@ -23,12 +23,13 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    # 核心修复：直接删掉那个变成 YAML 的坏 gradlew，用 Gradle 官方命令重新生成一个干净的！
-    - name: Regenerate clean Gradle Wrapper
+    # 核心修复：不重新生成，而是用 dos2unix 强行修复本地原本的 gradlew 换行符与格式问题！
+    - name: Repair and Grant permission for gradlew
       run: |
-        rm -f gradlew
-        rm -f gradlew.bat
-        gradle wrapper --gradle-version 8.0 --distribution-type bin
+        echo "=== Repairing gradlew ==="
+        # 如果文件里有 Windows 换行符（CRLF），强行转换为 Linux 换行符（LF）
+        sed -i 's/\r$//' gradlew
+        # 赋予执行权限
         chmod +x gradlew
 
     - name: Build with Gradle
