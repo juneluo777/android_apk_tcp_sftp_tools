@@ -49,7 +49,7 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
 
-    # 2. 强行在 app/build.gradle 中注入插件版本号，并注入仓库
+    # 2. 强行在 app/build.gradle 中注入插件版本号，并注入正确的仓库配置
     - name: Patch AGP Version and Repositories
       run: |
         echo "=== Patching app/build.gradle ==="
@@ -64,8 +64,8 @@ jobs:
         if [ -f settings.gradle ]; then
           cp settings.gradle settings.gradle.bak
           
-          # 强制在 settings.gradle 最前排塞入 pluginManagement 块确保能拉到插件包
-          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.PRESERVE_ACTIVE_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > temp_settings.gradle
+          # 强制在 settings.gradle 最前排塞入 pluginManagement 块，并将模式改为 PRESERVE_SHARED_REPOS
+          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.PRESERVE_SHARED_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > temp_settings.gradle
           
           cat settings.gradle.bak >> temp_settings.gradle
           mv temp_settings.gradle settings.gradle
