@@ -23,23 +23,23 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    # 终极修复：重建完整的 gradle/wrapper 目录，把脚本、JAR包、属性配置文件全部补齐！
+    # 1. 彻底补齐并纠正 Gradle Wrapper
     - name: Rebuild Complete Gradle Wrapper
       run: |
         echo "=== Creating gradle/wrapper folder structure ==="
         mkdir -p gradle/wrapper
         
-        # 1. 强制删除本地损坏的文件
+        # 强制删除本地损坏的文件
         rm -f gradlew
         
-        # 2. 下载干净的官方 Linux 启动脚本 gradlew
+        # 下载干净的官方 Linux 启动脚本 gradlew
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew -o gradlew
         chmod +x gradlew
         
-        # 3. 下载配套的 gradle-wrapper.jar
-        curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+        # 下载配套的 gradle-wrapper.jar
+        curl -sL://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
         
-        # 4. 强制写入缺失的 gradle-wrapper.properties 配置文件
+        # 强制写入标准的 gradle-wrapper.properties 配置文件
         cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
@@ -48,8 +48,36 @@ jobs:
         zipStoreBase=GRADLE_USER_HOME
         zipStorePath=wrapper/dists
         EOF
-        
-        echo "=== Wrapper rebuild complete ==="
+
+    # 2. 注入 Google 依赖仓库，确保能拉取到 Android 核心打包插件
+    - name: Inject Google Maven Repositories
+      run: |
+        echo "=== Injecting Google Maven repos into settings.gradle ==="
+        # 如果项目根目录下有 settings.gradle，确保它声明了 google() 和 mavenCentral()
+        if [ -f settings.gradle ]; then
+          # 备份原文件
+          cp settings.gradle settings.gradle.bak
+          # 在 settings.gradle 头部注入插件仓库源
+          cat << 'EOF' > temp_settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+  EOF
+          cat settings.gradle.bak >> temp_settings.gradle
+          mv temp_settings.gradle settings.gradle
+          echo "Injected repositories successfully."
+        fi
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug
