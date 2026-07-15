@@ -49,21 +49,23 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
 
-    # 2. 注入 Google 依赖仓库（改用最稳妥的 printf 避免 EOF 缩进问题）
-    - name: Inject Google Maven Repositories
+    # 2. 注入全局仓库到根目录的 build.gradle
+    - name: Inject Google Repositories to build.gradle
       run: |
-        echo "=== Injecting Google Maven repos into settings.gradle ==="
-        if [ -f settings.gradle ]; then
-          # 备份原文件
-          cp settings.gradle settings.gradle.bak
+        echo "=== Injecting buildscript and repositories into root build.gradle ==="
+        if [ -f build.gradle ]; then
+          # 备份原有的 build.gradle
+          cp build.gradle build.gradle.bak
           
-          # 用 printf 写入临时文件，彻底避开 EOF 语法陷阱
-          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > temp_settings.gradle
+          # 用 printf 在最顶部注入 buildscript、repositories 以及 allprojects 块，确保所有模块强制使用 Google 仓库
+          printf "buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath 'com.android.tools.build:gradle:8.0.0'\n    }\n}\n\nallprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n\n" > temp_build.gradle
           
-          # 合并原来的 settings.gradle 内容
-          cat settings.gradle.bak >> temp_settings.gradle
-          mv temp_settings.gradle settings.gradle
-          echo "Injected repositories successfully."
+          # 合并原有内容
+          cat build.gradle.bak >> temp_build.gradle
+          mv temp_build.gradle build.gradle
+          echo "Injected build.gradle successfully."
+        else
+          echo "Root build.gradle not found!"
         fi
 
     - name: Build with Gradle
