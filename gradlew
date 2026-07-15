@@ -20,21 +20,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
+    # 使用官方 Gradle 动作：它会自动帮你处理权限、换行符，并自带高效缓存
+    - name: Setup and Build with Gradle
       uses: gradle/actions/setup-gradle@v4
-
-    # 核心修复步骤：如果本地的 gradlew 损坏或格式不对，直接用系统自带的 gradle 重新生成它！
-    - name: Regenerate clean Gradle Wrapper
-      run: |
-        echo "=== Regenerating gradlew wrapper ==="
-        gradle wrapper --gradle-version 8.0 --distribution-type bin
-        chmod +x gradlew
-
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      with:
+        arguments: assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: app/build/outputs/apk/debug/app-debug.apk
