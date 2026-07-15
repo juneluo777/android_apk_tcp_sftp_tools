@@ -49,31 +49,21 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
 
-    # 2. 强行在 app/build.gradle 中注入插件版本号，并注入正确的仓库配置
-    - name: Patch AGP Version and Repositories
+    # 2. 精准修复仓库配置，杜绝语法冲突
+    - name: Configure Gradle Repositories
       run: |
-        echo "=== Patching app/build.gradle ==="
-        if [ -f app/build.gradle ]; then
-          # 备份原文件
-          cp app/build.gradle app/build.gradle.bak
-          
-          # 1. 强制把 id 'com.android.application' 替换为带版本号的形式
-          sed -i "s/id 'com.android.application'/id 'com.android.application' version '8.0.0'/g" app/build.gradle
-          sed -i 's/id "com.android.application"/id "com.android.application" version "8.0.0"/g' app/build.gradle
-          
-          # 2. 在 app/build.gradle 最顶端强行注入 buildscript，确保单独编译该模块时能拉到核心插件和库
-          printf "buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nallprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n\n" > temp_app_build.gradle
-          cat app/build.gradle >> temp_app_build.gradle
-          mv temp_app_build.gradle app/build.gradle
-          echo "Patched app/build.gradle successfully."
+        echo "=== Configuring settings.gradle with Plugin Management ==="
+        if [ -f settings.gradle ]; then
+          # 强制重写 settings.gradle，使用最标准的 Google 仓库声明和插件版本下发
+          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n    plugins {\n        id 'com.android.application' version '8.0.0'\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nrootProject.name = 'android_apk_tcp_sftp_tools'\ninclude ':app'\n" > settings.gradle
+          echo "Overwrote settings.gradle successfully."
         fi
 
-        echo "=== Cleaning and Overriding settings.gradle ==="
-        if [ -f settings.gradle ]; then
-          # 直接强制重写一个极简的 settings.gradle，将模式设为 PREFER_PROJECT。
-          # 这样 Gradle 就会完全听从刚才我们在 app/build.gradle 顶部注入的仓库设置，再也不会报错！
-          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nrootProject.name = 'android_apk_tcp_sftp_tools'\ninclude ':app'\n" > settings.gradle
-          echo "Reset settings.gradle successfully."
+        echo "=== Ensuring app/build.gradle is clean ==="
+        # 如果之前因为运行出错导致 app/build.gradle.bak 存在，我们把它还原回来以确保它是干净的
+        if [ -f app/build.gradle.bak ]; then
+          mv app/build.gradle.bak app/build.gradle
+          echo "Restored original app/build.gradle to clear injected code."
         fi
 
     - name: Build with Gradle
