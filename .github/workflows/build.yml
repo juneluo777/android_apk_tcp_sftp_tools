@@ -49,23 +49,27 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
 
-    # 2. 注入全局仓库到根目录的 build.gradle
-    - name: Inject Google Repositories to build.gradle
+    # 2. 强行在 app/build.gradle 中注入插件版本号，并注入仓库
+    - name: Patch AGP Version and Repositories
       run: |
-        echo "=== Injecting buildscript and repositories into root build.gradle ==="
-        if [ -f build.gradle ]; then
-          # 备份原有的 build.gradle
-          cp build.gradle build.gradle.bak
+        echo "=== Patching app/build.gradle ==="
+        # 强制把 id 'com.android.application' 替换为带版本号的形式，防止 Gradle 找不到版本
+        if [ -f app/build.gradle ]; then
+          sed -i "s/id 'com.android.application'/id 'com.android.application' version '8.0.0'/g" app/build.gradle
+          sed -i 's/id "com.android.application"/id "com.android.application" version "8.0.0"/g' app/build.gradle
+          echo "Patched app/build.gradle successfully."
+        fi
+
+        echo "=== Injecting Repositories into settings.gradle ==="
+        if [ -f settings.gradle ]; then
+          cp settings.gradle settings.gradle.bak
           
-          # 用 printf 在最顶部注入 buildscript、repositories 以及 allprojects 块，确保所有模块强制使用 Google 仓库
-          printf "buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath 'com.android.tools.build:gradle:8.0.0'\n    }\n}\n\nallprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n\n" > temp_build.gradle
+          # 强制在 settings.gradle 最前排塞入 pluginManagement 块确保能拉到插件包
+          printf "pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.PRESERVE_ACTIVE_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > temp_settings.gradle
           
-          # 合并原有内容
-          cat build.gradle.bak >> temp_build.gradle
-          mv temp_build.gradle build.gradle
-          echo "Injected build.gradle successfully."
-        else
-          echo "Root build.gradle not found!"
+          cat settings.gradle.bak >> temp_settings.gradle
+          mv temp_settings.gradle settings.gradle
+          echo "Injected settings.gradle successfully."
         fi
 
     - name: Build with Gradle
