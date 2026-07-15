@@ -20,13 +20,17 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # 正确做法 1：v4 动作只用来配置 Gradle 环境和缓存，不直接传参
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
 
-    # 正确做法 2：环境好了之后，用标准的 run 运行编译（此时插件会自动接管底层）
+    # 核心修复：直接删掉那个变成 YAML 的坏 gradlew，用 Gradle 官方命令重新生成一个干净的！
+    - name: Regenerate clean Gradle Wrapper
+      run: |
+        rm -f gradlew
+        rm -f gradlew.bat
+        gradle wrapper --gradle-version 8.0 --distribution-type bin
+        chmod +x gradlew
+
     - name: Build with Gradle
       run: ./gradlew assembleDebug
 
@@ -34,4 +38,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/*.apk"
