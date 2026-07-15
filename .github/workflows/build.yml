@@ -23,13 +23,15 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    # 核心修复：不重新生成，而是用 dos2unix 强行修复本地原本的 gradlew 换行符与格式问题！
-    - name: Repair and Grant permission for gradlew
+    # 核心修复：直接从官方源下载最新且绝对干净、合法的 Linux gradlew 脚本覆盖掉坏文件！
+    - name: Download Clean official gradlew
       run: |
-        echo "=== Repairing gradlew ==="
-        # 如果文件里有 Windows 换行符（CRLF），强行转换为 Linux 换行符（LF）
-        sed -i 's/\r$//' gradlew
-        # 赋予执行权限
+        echo "=== Downloading official clean gradlew ==="
+        # 强制删除本地损坏的文件
+        rm -f gradlew
+        # 从 Gradle 官方合规的 wrapper 源码库直接下载原装 gradlew
+        curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew -o gradlew
+        # 赋予可执行权限
         chmod +x gradlew
 
     - name: Build with Gradle
