@@ -23,22 +23,33 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    # 核心修复：同时下载干净的 gradlew 脚本和配套的 gradle-wrapper.jar 包
-    - name: Download Clean gradlew and jar wrapper
+    # 终极修复：重建完整的 gradle/wrapper 目录，把脚本、JAR包、属性配置文件全部补齐！
+    - name: Rebuild Complete Gradle Wrapper
       run: |
-        echo "=== Re-creating Gradle Wrapper folder structure ==="
-        # 确保 gradle/wrapper 目录存在
+        echo "=== Creating gradle/wrapper folder structure ==="
         mkdir -p gradle/wrapper
         
-        # 强制删除本地可能损坏或格式不对的启动脚本
+        # 1. 强制删除本地损坏的文件
         rm -f gradlew
         
-        # 1. 下载官方原装 Linux gradlew 脚本
+        # 2. 下载干净的官方 Linux 启动脚本 gradlew
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew -o gradlew
         chmod +x gradlew
         
-        # 2. 下载配套必不可少的 gradle-wrapper.jar 包
+        # 3. 下载配套的 gradle-wrapper.jar
         curl -sL https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
+        
+        # 4. 强制写入缺失的 gradle-wrapper.properties 配置文件
+        cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
+        distributionBase=GRADLE_USER_HOME
+        distributionPath=wrapper/dists
+        distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip
+        networkTimeout=10000
+        zipStoreBase=GRADLE_USER_HOME
+        zipStorePath=wrapper/dists
+        EOF
+        
+        echo "=== Wrapper rebuild complete ==="
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug
